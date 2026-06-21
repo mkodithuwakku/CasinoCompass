@@ -4,6 +4,7 @@ struct CompassView: View {
     let relativeAngle: Double
     let distance: String
     let venueName: String?
+    let venueNote: String?
     let status: String
     let isUsingDemo: Bool
 
@@ -67,6 +68,13 @@ struct CompassView: View {
                             .multilineTextAlignment(.center)
                             .lineLimit(2)
                             .minimumScaleFactor(0.8)
+                    }
+
+                    if let venueNote {
+                        Text(venueNote)
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(.mint.opacity(0.9))
+                            .multilineTextAlignment(.center)
                     }
 
                     Text(isUsingDemo ? "Demo location active" : status)

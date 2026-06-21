@@ -10,6 +10,7 @@ This README is intended to stay continuously updated with the app. When features
 - Minimum deployment target: iOS 17.0.
 - Bundle identifier: `com.casinocompass.prototype`.
 - Current data source: static in-app Canadian casino dataset.
+- Current dataset coverage: Canadian full-casino/table-game venues reviewed from province/operator lists and casino directories.
 - Location mode: live Core Location when authorized, with a Vancouver demo fallback.
 - Heading mode: live device compass when available, with demo heading fallback.
 
@@ -26,6 +27,8 @@ The primary experience is a full-screen compass interface:
 - Rotates the pointer relative to device heading.
 - Displays distance and, when enabled, the venue name.
 - Allows cycling to another nearby venue with `New Venue`.
+- Shows an alert when `New Venue` is tapped but no additional qualifying casino exists within 50 km.
+- Marks alternate selections so users can tell when the compass is no longer pointing at the nearest venue.
 - Shows venue details and opens Apple Maps.
 - Generates a share card for the current result.
 
@@ -38,6 +41,8 @@ The compass has several user-facing refinements:
 - Correct-path background: the screen fades toward a green path state as the user approaches the correct heading.
 - Fresh location refresh: opening or foregrounding the app requests a fresh GPS fix and rejects stale Core Location results older than 60 seconds.
 - Nearest venue reset: after a meaningful location change, the selected venue resets to the nearest result so the app does not keep pointing at a casino near the previous location.
+- New Venue completion: the control cycles through nearby qualifying venues, labels alternate selections, and explains when there is no other nearby venue.
+- Canada-wide table-game venue expansion: added a broader static list of full casino venues across provinces and territories where table-game casinos are known to operate.
 
 ## Project Structure
 
@@ -93,6 +98,8 @@ The model-level angle remains normalized to `0...360`; `CompassView` keeps a sep
 
 When the app receives a meaningful fresh location update, `selectedVenueIndex` is reset to `0` so the nearest casino is selected again.
 
+When the user taps `New Venue`, `selectedVenueIndex` advances through the candidate list in distance order. If the current dataset has only one nearby candidate, the app keeps the nearest venue selected and shows a dataset-scoped no-other-nearby alert.
+
 ## Build And Run
 
 Open the project in Xcode:
@@ -117,10 +124,11 @@ Before pushing user-facing changes:
 2. Launch the app in demo mode and confirm the compass renders.
 3. Toggle live/demo location.
 4. Confirm venue details open.
-5. Confirm `New Venue` still cycles when multiple candidates are available.
-6. On a physical device, confirm heading rotation is smooth across `0/360`.
-7. On a physical device, confirm correct-direction haptics fire once when entering the target window.
-8. Move a meaningful distance or simulate a location change and confirm the nearest venue updates.
+5. Confirm `New Venue` cycles through multiple nearby candidates in distance order.
+6. Confirm `New Venue` shows a no-other-nearby alert when only one qualifying casino is available within 50 km.
+7. On a physical device, confirm heading rotation is smooth across `0/360`.
+8. On a physical device, confirm correct-direction haptics fire once when entering the target window.
+9. Move a meaningful distance or simulate a location change and confirm the nearest venue updates.
 
 ## Privacy
 
@@ -130,11 +138,15 @@ The app falls back to a static demo coordinate when live location is unavailable
 
 ## Dataset Maintenance
 
-The current dataset is static and should be reviewed before release. When adding or editing venues:
+The current dataset is static and should be reviewed before release. It intentionally targets full casinos with table games, not every slots-only gaming centre, bingo hall, VLT venue, or online casino.
+
+When adding or editing venues:
 
 - Keep coordinates precise enough for distance and bearing calculations.
 - Confirm `hasTableGames` reflects the app's qualifying venue rule.
 - Keep `id` values stable because they identify venues in code.
+- Treat "no other nearby venue" as a statement about the current dataset, not an authoritative real-world casino directory.
+- Prefer provincial regulator, lottery corporation, or operator pages when confirming venues; use general directories only as a cross-check.
 - Update this README if the source, scope, or qualification rules change.
 
 ## Release Notes Template
@@ -151,4 +163,3 @@ Validation:
 Known Issues:
 - 
 ```
-

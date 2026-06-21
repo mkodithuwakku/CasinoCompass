@@ -13,6 +13,7 @@ struct ContentView: View {
     @State private var shareItems: [Any] = []
     @State private var isShowingShareSheet = false
     @State private var isShowingDetails = false
+    @State private var isShowingNoOtherVenueAlert = false
     @State private var wasFacingCorrectDirection = false
 
     private let placeholderLink = "casinocompass.app"
@@ -63,6 +64,11 @@ struct ContentView: View {
             )
             .presentationDetents([.medium])
         }
+        .alert("No Other Venue In Dataset", isPresented: $isShowingNoOtherVenueAlert) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("CasinoCompass does not have another qualifying casino within \(CompassMath.formattedDistance(newVenueRadiusMeters)) in its current venue dataset.")
+        }
     }
 
     private var mainExperience: some View {
@@ -75,6 +81,7 @@ struct ContentView: View {
                 relativeAngle: relativeAngle,
                 distance: formattedDistance,
                 venueName: showVenueName ? selectedVenue.name : nil,
+                venueNote: venueNote,
                 status: locationService.statusMessage,
                 isUsingDemo: locationService.isUsingDemoLocation
             )
@@ -128,8 +135,6 @@ struct ContentView: View {
                 ActionButton(title: "New Venue", systemImage: "arrow.triangle.2.circlepath") {
                     selectNextVenue()
                 }
-                .disabled(candidateVenues.count <= 1)
-                .opacity(candidateVenues.count <= 1 ? 0.46 : 1)
             }
 
             HStack(spacing: 12) {
@@ -166,6 +171,16 @@ struct ContentView: View {
         return venues[safeIndex]
     }
 
+    private var selectedVenuePosition: Int {
+        guard !candidateVenues.isEmpty else { return 1 }
+        return selectedVenueIndex % candidateVenues.count + 1
+    }
+
+    private var venueNote: String? {
+        guard candidateVenues.count > 1, selectedVenuePosition > 1 else { return nil }
+        return "Alternate venue \(selectedVenuePosition) of \(candidateVenues.count)"
+    }
+
     private var targetBearing: Double {
         selectedVenue.bearing(from: currentCoordinate)
     }
@@ -196,8 +211,12 @@ struct ContentView: View {
     }
 
     private func selectNextVenue() {
-        guard candidateVenues.count > 1 else { return }
+        guard candidateVenues.count > 1 else {
+            isShowingNoOtherVenueAlert = true
+            return
+        }
         selectedVenueIndex = (selectedVenueIndex + 1) % candidateVenues.count
+        wasFacingCorrectDirection = false
     }
 
     private func createShareCard() {
