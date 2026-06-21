@@ -1,0 +1,16 @@
+# macOS
+.DS_Store
+
+# Xcode user state and generated build products
+DerivedData/
+build/
+*.xcuserstate
+xcuserdata/
+
+# Swift Package Manager, if added later
+.build/
+
+# Local demo captures and screenshots
+casinocompass-*.png
+casinocompass-*.mov
+
