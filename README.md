@@ -30,7 +30,7 @@ The primary experience is a full-screen compass interface:
 - Allows cycling to another nearby venue with `New Venue`.
 - Shows an alert when `New Venue` is tapped but no additional qualifying casino exists within 50 km.
 - Marks alternate selections so users can tell when the compass is no longer pointing at the nearest venue.
-- Shows venue details and opens Apple Maps.
+- Shows venue details and opens directions in Apple Maps or Google Maps.
 - Generates a share card for the current result.
 
 ## Recent Interaction Fixes
@@ -45,6 +45,7 @@ The compass has several user-facing refinements:
 - New Venue completion: the control cycles through nearby qualifying venues, labels alternate selections, and explains when there is no other nearby venue.
 - Canada-wide table-game venue expansion: added a broader static list of full casino venues across provinces and territories where table-game casinos are known to operate.
 - Dynamic cheeky taglines: the subtitle under `CasinoCompass` rotates through a curated set of witty lines on app launch.
+- Lightweight Google Maps integration: venue details now offer Apple Maps and Google Maps actions. Google Maps uses a Universal Link, so no Google Maps SDK, API key, or billing setup is required.
 
 ## Project Structure
 
@@ -102,6 +103,15 @@ When the app receives a meaningful fresh location update, `selectedVenueIndex` i
 
 When the user taps `New Venue`, `selectedVenueIndex` advances through the candidate list in distance order. If the current dataset has only one nearby candidate, the app keeps the nearest venue selected and shows a dataset-scoped no-other-nearby alert.
 
+### Maps Integration
+
+`VenueDetailsView` offers two directions actions:
+
+- Apple Maps opens with `maps.apple.com` using the selected venue coordinate and name.
+- Google Maps opens with a `google.com/maps/dir` Universal Link using the selected venue coordinate and driving mode.
+
+The Google Maps path is intentionally lightweight. It does not embed Google Maps inside the app, does not use the Google Maps SDK, and does not require a Google Cloud API key. If iOS can route the Universal Link to the Google Maps app, it opens there; otherwise it opens in the browser.
+
 ## Build And Run
 
 Open the project in Xcode:
@@ -126,11 +136,12 @@ Before pushing user-facing changes:
 2. Launch the app in demo mode and confirm the compass renders.
 3. Toggle live/demo location.
 4. Confirm venue details open.
-5. Confirm `New Venue` cycles through multiple nearby candidates in distance order.
-6. Confirm `New Venue` shows a no-other-nearby alert when only one qualifying casino is available within 50 km.
-7. On a physical device, confirm heading rotation is smooth across `0/360`.
-8. On a physical device, confirm correct-direction haptics fire once when entering the target window.
-9. Move a meaningful distance or simulate a location change and confirm the nearest venue updates.
+5. Confirm Apple Maps and Google Maps actions open directions for the selected venue.
+6. Confirm `New Venue` cycles through multiple nearby candidates in distance order.
+7. Confirm `New Venue` shows a no-other-nearby alert when only one qualifying casino is available within 50 km.
+8. On a physical device, confirm heading rotation is smooth across `0/360`.
+9. On a physical device, confirm correct-direction haptics fire once when entering the target window.
+10. Move a meaningful distance or simulate a location change and confirm the nearest venue updates.
 
 ## Privacy
 

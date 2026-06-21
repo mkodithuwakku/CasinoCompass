@@ -375,15 +375,28 @@ private struct VenueDetailsView: View {
             DetailRow(icon: "tablecells.fill", title: "Venue rule", value: "Full casino with table games")
             DetailRow(icon: isUsingDemo ? "sparkles" : "location.fill", title: "Location mode", value: isUsingDemo ? "Demo location" : "Live location")
 
-            Button {
-                openInMaps(venue)
-            } label: {
-                Label("Open in Maps", systemImage: "map")
-                    .font(.headline)
-                    .foregroundStyle(.black)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 52)
-                    .background(.mint, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            VStack(spacing: 10) {
+                Button {
+                    openInAppleMaps(venue)
+                } label: {
+                    Label("Open in Apple Maps", systemImage: "map")
+                        .font(.headline)
+                        .foregroundStyle(.black)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 52)
+                        .background(.mint, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                }
+
+                Button {
+                    openInGoogleMaps(venue)
+                } label: {
+                    Label("Open in Google Maps", systemImage: "map.fill")
+                        .font(.headline)
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 52)
+                        .background(Color(red: 0.10, green: 0.42, blue: 0.92), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                }
             }
             .padding(.top, 6)
 
@@ -392,12 +405,34 @@ private struct VenueDetailsView: View {
         .padding(24)
     }
 
-    private func openInMaps(_ venue: CasinoVenue) {
+    private func openInAppleMaps(_ venue: CasinoVenue) {
         let latitude = venue.coordinate.latitude
         let longitude = venue.coordinate.longitude
-        if let url = URL(string: "http://maps.apple.com/?ll=\(latitude),\(longitude)&q=\(venue.name.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "Casino")") {
-            UIApplication.shared.open(url)
-        }
+
+        var components = URLComponents(string: "http://maps.apple.com/")
+        components?.queryItems = [
+            URLQueryItem(name: "ll", value: "\(latitude),\(longitude)"),
+            URLQueryItem(name: "q", value: venue.name)
+        ]
+        openURL(components?.url)
+    }
+
+    private func openInGoogleMaps(_ venue: CasinoVenue) {
+        let latitude = venue.coordinate.latitude
+        let longitude = venue.coordinate.longitude
+
+        var components = URLComponents(string: "https://www.google.com/maps/dir/")
+        components?.queryItems = [
+            URLQueryItem(name: "api", value: "1"),
+            URLQueryItem(name: "destination", value: "\(latitude),\(longitude)"),
+            URLQueryItem(name: "travelmode", value: "driving")
+        ]
+        openURL(components?.url)
+    }
+
+    private func openURL(_ url: URL?) {
+        guard let url else { return }
+        UIApplication.shared.open(url)
     }
 }
 
