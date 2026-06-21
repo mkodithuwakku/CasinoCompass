@@ -20,6 +20,7 @@ The primary experience is a full-screen compass interface:
 
 - Requests location while the app is open.
 - Determines the user's current coordinate.
+- Shows a witty header tagline chosen fresh each app launch.
 - Filters the venue dataset to casinos with table games.
 - Sorts venues by distance from the current coordinate.
 - Selects the nearest qualifying venue by default.
@@ -43,6 +44,7 @@ The compass has several user-facing refinements:
 - Nearest venue reset: after a meaningful location change, the selected venue resets to the nearest result so the app does not keep pointing at a casino near the previous location.
 - New Venue completion: the control cycles through nearby qualifying venues, labels alternate selections, and explains when there is no other nearby venue.
 - Canada-wide table-game venue expansion: added a broader static list of full casino venues across provinces and territories where table-game casinos are known to operate.
+- Dynamic cheeky taglines: the subtitle under `CasinoCompass` rotates through a curated set of witty lines on app launch.
 
 ## Project Structure
 

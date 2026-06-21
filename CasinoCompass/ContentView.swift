@@ -15,11 +15,30 @@ struct ContentView: View {
     @State private var isShowingDetails = false
     @State private var isShowingNoOtherVenueAlert = false
     @State private var wasFacingCorrectDirection = false
+    @State private var headerTagline = Self.headerTaglines.randomElement() ?? Self.defaultHeaderTagline
 
     private let placeholderLink = "casinocompass.app"
     private let newVenueRadiusMeters: CLLocationDistance = 50_000
     private let correctDirectionThreshold = 8.0
     private let correctPathFadeStart = 45.0
+
+    private static let defaultHeaderTagline = "Subtle guidance. Questionable destiny."
+    private static let headerTaglines = [
+        defaultHeaderTagline,
+        "Get to where you NEED to go.",
+        "You miss 100% of the shots you don't take.",
+        "The odds are in favour.",
+        "Follow your heart. And the blinking arrow.",
+        "A little luck. A lot of questionable navigation.",
+        "Responsible choices. Irresponsibly stylish compass.",
+        "Destiny has a table minimum.",
+        "Pointing you toward statistically complicated decisions.",
+        "For entertainment purposes, obviously.",
+        "Your future called. It wants directions.",
+        "The house always has an address.",
+        "Go forth. Tip responsibly.",
+        "Not financial advice. Definitely directional advice."
+    ]
 
     var body: some View {
         ZStack {
@@ -99,9 +118,11 @@ struct ContentView: View {
                     .font(.system(size: 31, weight: .bold, design: .rounded))
                     .foregroundStyle(.white)
 
-                Text("Subtle guidance. Questionable destiny.")
+                Text(headerTagline)
                     .font(.subheadline.weight(.medium))
                     .foregroundStyle(.white.opacity(0.64))
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.82)
             }
 
             Spacer()
