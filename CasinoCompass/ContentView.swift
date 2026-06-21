@@ -2,6 +2,13 @@ import CoreLocation
 import SwiftUI
 import UIKit
 
+private enum AppLinks {
+    static let website = URL(string: "https://casinocompass.app")!
+    static let privacyPolicy = URL(string: "https://casinocompass.app/privacy")!
+    static let support = URL(string: "https://casinocompass.app/support")!
+    static let responsibleGamblingCouncil = URL(string: "https://responsiblegambling.org/for-the-public/help-for-problem-gambling/help-for-canadians/")!
+}
+
 struct ContentView: View {
     @Environment(\.scenePhase) private var scenePhase
 
@@ -13,11 +20,12 @@ struct ContentView: View {
     @State private var shareItems: [Any] = []
     @State private var isShowingShareSheet = false
     @State private var isShowingDetails = false
+    @State private var isShowingSettings = false
     @State private var isShowingNoOtherVenueAlert = false
     @State private var wasFacingCorrectDirection = false
     @State private var headerTagline = Self.headerTaglines.randomElement() ?? Self.defaultHeaderTagline
 
-    private let placeholderLink = "casinocompass.app"
+    private let appLink = AppLinks.website.absoluteString
     private let newVenueRadiusMeters: CLLocationDistance = 50_000
     private let correctDirectionThreshold = 8.0
     private let correctPathFadeStart = 45.0
@@ -83,6 +91,10 @@ struct ContentView: View {
             )
             .presentationDetents([.medium])
         }
+        .sheet(isPresented: $isShowingSettings) {
+            SettingsView()
+                .presentationDetents([.large])
+        }
         .alert("No Other Venue In Dataset", isPresented: $isShowingNoOtherVenueAlert) {
             Button("OK", role: .cancel) {}
         } message: {
@@ -127,20 +139,33 @@ struct ContentView: View {
 
             Spacer()
 
-            Button {
-                if locationService.isUsingDemoLocation {
-                    locationService.refreshCurrentLocation()
-                } else {
-                    locationService.useDemoLocation()
+            HStack(spacing: 10) {
+                Button {
+                    isShowingSettings = true
+                } label: {
+                    Image(systemName: "gearshape.fill")
+                        .font(.system(size: 17, weight: .bold))
+                        .foregroundStyle(.white)
+                        .frame(width: 44, height: 44)
+                        .background(.white.opacity(0.12), in: Circle())
                 }
-            } label: {
-                Image(systemName: locationService.isUsingDemoLocation ? "location.fill" : "sparkles")
-                    .font(.system(size: 17, weight: .bold))
-                    .foregroundStyle(.white)
-                    .frame(width: 44, height: 44)
-                    .background(.white.opacity(0.12), in: Circle())
+                .accessibilityLabel("Settings")
+
+                Button {
+                    if locationService.isUsingDemoLocation {
+                        locationService.refreshCurrentLocation()
+                    } else {
+                        locationService.useDemoLocation()
+                    }
+                } label: {
+                    Image(systemName: locationService.isUsingDemoLocation ? "location.fill" : "sparkles")
+                        .font(.system(size: 17, weight: .bold))
+                        .foregroundStyle(.white)
+                        .frame(width: 44, height: 44)
+                        .background(.white.opacity(0.12), in: Circle())
+                }
+                .accessibilityLabel(locationService.isUsingDemoLocation ? "Use live location" : "Use demo location")
             }
-            .accessibilityLabel(locationService.isUsingDemoLocation ? "Use live location" : "Use demo location")
         }
         .padding(.horizontal, 22)
         .padding(.top, 22)
@@ -241,20 +266,20 @@ struct ContentView: View {
     }
 
     private func createShareCard() {
-        let card = ShareCardView(distance: formattedDistance, placeholderLink: placeholderLink)
+        let card = ShareCardView(distance: formattedDistance, appLink: appLink)
         let renderer = ImageRenderer(content: card)
         renderer.proposedSize = ProposedViewSize(width: 1080, height: 1350)
         renderer.scale = 1
 
         guard let image = renderer.uiImage else {
-            shareItems = ["Download CasinoCompass to find the closest casino to you. \(placeholderLink)"]
+            shareItems = ["Download CasinoCompass to find the closest casino to you. \(appLink)"]
             isShowingShareSheet = true
             return
         }
 
         shareItems = [
             image,
-            "Download CasinoCompass to find the closest casino to you. \(placeholderLink)"
+            "Download CasinoCompass to find the closest casino to you. \(appLink)"
         ]
         isShowingShareSheet = true
     }
@@ -279,7 +304,7 @@ private struct AgeGateView: View {
     let onAccept: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 28) {
+        VStack(alignment: .leading, spacing: 24) {
             Spacer()
 
             VStack(alignment: .leading, spacing: 14) {
@@ -294,17 +319,20 @@ private struct AgeGateView: View {
             }
 
             VStack(alignment: .leading, spacing: 12) {
-                Label("18+ only", systemImage: "18.circle.fill")
+                Label("Legal age only", systemImage: "checkmark.seal.fill")
                 Label("Uses location while the app is open", systemImage: "location.fill")
                 Label("No betting, accounts, or casino promos", systemImage: "checkmark.shield.fill")
+                Label("Use local laws and safer-play limits", systemImage: "hand.raised.fill")
             }
             .font(.headline)
             .foregroundStyle(.white.opacity(0.86))
 
             Button(action: onAccept) {
                 HStack {
-                    Text("I am 18 or older")
+                    Text("I meet the legal age in my location")
                         .fontWeight(.bold)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.78)
                     Spacer()
                     Image(systemName: "arrow.right")
                 }
@@ -314,9 +342,145 @@ private struct AgeGateView: View {
                 .background(.mint, in: RoundedRectangle(cornerRadius: 8, style: .continuous))
             }
 
+            HStack(spacing: 14) {
+                Link("Privacy", destination: AppLinks.privacyPolicy)
+                Link("Support", destination: AppLinks.support)
+                Link("Safer Play", destination: AppLinks.responsibleGamblingCouncil)
+            }
+            .font(.footnote.weight(.semibold))
+            .foregroundStyle(.mint)
+
             Spacer()
         }
         .padding(28)
+    }
+}
+
+private struct SettingsView: View {
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 24) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Release Info")
+                            .font(.largeTitle.bold())
+                        Text("CasinoCompass is a novelty location utility. It does not enable betting, deposits, accounts, casino promotions, or gambling transactions.")
+                            .font(.body)
+                            .foregroundStyle(.secondary)
+                    }
+
+                    SettingsSection(title: "Privacy") {
+                        ResourceLinkRow(
+                            icon: "location.fill",
+                            title: "Location use",
+                            detail: "Used on device while the app is open to calculate distance and direction. CasinoCompass does not store location history or run analytics.",
+                            url: AppLinks.privacyPolicy
+                        )
+                        ResourceLinkRow(
+                            icon: "hand.raised.fill",
+                            title: "Privacy policy",
+                            detail: "Read the release privacy policy before installing or reviewing the app.",
+                            url: AppLinks.privacyPolicy
+                        )
+                    }
+
+                    SettingsSection(title: "Safer Play") {
+                        ResourceLinkRow(
+                            icon: "heart.text.square.fill",
+                            title: "Responsible Gambling Council",
+                            detail: "Canadian safer-gambling education and help resources.",
+                            url: AppLinks.responsibleGamblingCouncil
+                        )
+                        ResourceLinkRow(
+                            icon: "exclamationmark.triangle.fill",
+                            title: "Important reminder",
+                            detail: "Only visit venues where legal for your age and region. If gambling stops feeling recreational, pause and use local support resources.",
+                            url: AppLinks.responsibleGamblingCouncil
+                        )
+                    }
+
+                    SettingsSection(title: "Support") {
+                        ResourceLinkRow(
+                            icon: "envelope.fill",
+                            title: "Support",
+                            detail: "Contact support or find app information.",
+                            url: AppLinks.support
+                        )
+                    }
+                }
+                .padding(24)
+            }
+            .navigationTitle("Settings")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+}
+
+private struct SettingsSection<Content: View>: View {
+    let title: String
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(title)
+                .font(.headline)
+                .foregroundStyle(.secondary)
+                .textCase(.uppercase)
+
+            VStack(spacing: 0) {
+                content
+            }
+            .background(.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .stroke(.secondary.opacity(0.12), lineWidth: 1)
+            )
+        }
+    }
+}
+
+private struct ResourceLinkRow: View {
+    let icon: String
+    let title: String
+    let detail: String
+    let url: URL
+
+    var body: some View {
+        Link(destination: url) {
+            HStack(alignment: .top, spacing: 14) {
+                Image(systemName: icon)
+                    .font(.system(size: 17, weight: .bold))
+                    .foregroundStyle(.mint)
+                    .frame(width: 28, height: 28)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title)
+                        .font(.headline)
+                        .foregroundStyle(.primary)
+                    Text(detail)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.leading)
+                }
+
+                Spacer(minLength: 8)
+
+                Image(systemName: "arrow.up.right")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(.secondary)
+            }
+            .padding(16)
+        }
+        .buttonStyle(.plain)
     }
 }
 

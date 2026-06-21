@@ -8,11 +8,13 @@ This README is intended to stay continuously updated with the app. When features
 
 - Platform: native iOS app built with SwiftUI.
 - Minimum deployment target: iOS 17.0.
-- Bundle identifier: `com.casinocompass.prototype`.
+- Bundle identifier: `com.casinocompass.app`.
+- Current release version: `1.0` build `1`.
 - Current data source: static in-app Canadian casino dataset.
 - Current dataset coverage: Canadian full-casino/table-game venues reviewed from province/operator lists and casino directories.
 - Location mode: live Core Location when authorized, with a Vancouver demo fallback.
 - Heading mode: live device compass when available, with demo heading fallback.
+- App Store hardening: app icon assets, settings resources, privacy policy draft, and submission notes are included.
 
 ## Product Behavior
 
@@ -32,6 +34,7 @@ The primary experience is a full-screen compass interface:
 - Marks alternate selections so users can tell when the compass is no longer pointing at the nearest venue.
 - Shows venue details and opens directions in Apple Maps or Google Maps.
 - Generates a share card for the current result.
+- Provides Settings links for privacy, support, and safer-play resources.
 
 ## Recent Interaction Fixes
 
@@ -46,6 +49,7 @@ The compass has several user-facing refinements:
 - Canada-wide table-game venue expansion: added a broader static list of full casino venues across provinces and territories where table-game casinos are known to operate.
 - Dynamic cheeky taglines: the subtitle under `CasinoCompass` rotates through a curated set of witty lines on app launch.
 - Lightweight Google Maps integration: venue details now offer Apple Maps and Google Maps actions. Google Maps uses a Universal Link, so no Google Maps SDK, API key, or billing setup is required.
+- Release hardening: added app icon assets, release bundle/version settings, privacy/support/safer-play links, a draft privacy policy, and App Store submission notes.
 
 ## Project Structure
 
@@ -66,6 +70,11 @@ CasinoCompass/
   Assets.xcassets/                App icon and accent color assets
 CasinoCompass.xcodeproj/          Xcode project
 SOFTWARE_REQUIREMENTS.md          Product and engineering requirements
+docs/
+  APP_STORE_SUBMISSION.md         App Store metadata, review notes, and QA checklist
+  PRIVACY_POLICY.md               Privacy policy draft to publish before submission
+tools/
+  generate_app_icons.py           Reproducible app icon generator
 ```
 
 ## Core Implementation Notes
@@ -112,6 +121,23 @@ When the user taps `New Venue`, `selectedVenueIndex` advances through the candid
 
 The Google Maps path is intentionally lightweight. It does not embed Google Maps inside the app, does not use the Google Maps SDK, and does not require a Google Cloud API key. If iOS can route the Universal Link to the Google Maps app, it opens there; otherwise it opens in the browser.
 
+### Release Hardening
+
+The app includes a release-oriented Settings screen with:
+
+- Privacy summary and Privacy Policy link.
+- Support link.
+- Responsible Gambling Council safer-play resource link.
+
+The project includes generated app icon PNGs and a repeatable generator in `tools/generate_app_icons.py`.
+
+Before App Store submission, publish the privacy policy and support pages at the URLs used in the app:
+
+- `https://casinocompass.app/privacy`
+- `https://casinocompass.app/support`
+
+See `docs/APP_STORE_SUBMISSION.md` for metadata, review notes, privacy labels, screenshot planning, and the physical-device QA checklist.
+
 ## Build And Run
 
 Open the project in Xcode:
@@ -137,11 +163,13 @@ Before pushing user-facing changes:
 3. Toggle live/demo location.
 4. Confirm venue details open.
 5. Confirm Apple Maps and Google Maps actions open directions for the selected venue.
-6. Confirm `New Venue` cycles through multiple nearby candidates in distance order.
-7. Confirm `New Venue` shows a no-other-nearby alert when only one qualifying casino is available within 50 km.
-8. On a physical device, confirm heading rotation is smooth across `0/360`.
-9. On a physical device, confirm correct-direction haptics fire once when entering the target window.
-10. Move a meaningful distance or simulate a location change and confirm the nearest venue updates.
+6. Confirm Settings opens and privacy, support, and safer-play links work.
+7. Confirm `New Venue` cycles through multiple nearby candidates in distance order.
+8. Confirm `New Venue` shows a no-other-nearby alert when only one qualifying casino is available within 50 km.
+9. On a physical device, confirm heading rotation is smooth across `0/360`.
+10. On a physical device, confirm correct-direction haptics fire once when entering the target window.
+11. Move a meaningful distance or simulate a location change and confirm the nearest venue updates.
+12. Archive a Release build before App Store submission.
 
 ## Privacy
 

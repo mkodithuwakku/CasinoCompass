@@ -2,7 +2,7 @@ import SwiftUI
 
 struct ShareCardView: View {
     let distance: String
-    let placeholderLink: String
+    let appLink: String
 
     var body: some View {
         ZStack {
@@ -52,7 +52,7 @@ struct ShareCardView: View {
                         .multilineTextAlignment(.center)
                         .lineSpacing(4)
 
-                    Text(placeholderLink)
+                    Text(appLink)
                         .font(.system(size: 30, weight: .medium, design: .rounded))
                         .foregroundStyle(.mint.opacity(0.92))
                 }
