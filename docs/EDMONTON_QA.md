@@ -10,9 +10,18 @@ Initial audit: commit `861817c`. Follow-up implementation on September 30, 2026 
 - Switching to demo then injecting Argyll coordinates leaves Parq Vancouver selected at 992 m. Backgrounding into Settings and returning preserves demo. Explicit live selection shows a locating state until a new fix arrives. Missing real heading shows an unavailable indicator rather than fake live rotation.
 - Century Mile remains selectable. At 53.3100, -113.5850 it is 39 m away and displays “No live table games • electronic table games only” on the compass and in details. The same notice is included in share content. Other venues retain their existing bundled classifications; this is not a new national data audit.
 - The main screen scrolls when space is limited so notices and controls remain reachable. Details use a large sheet to accommodate game descriptions.
-- Static privacy/support pages are supplied in `docs/privacy/` and `docs/support/`, served at `https://mkodithuwakku.github.io/CasinoCompass/`, with public GitHub Issues contact. The app's links use that exact case-sensitive base. Publication verification is recorded after deployment below.
+- Static privacy/support pages are supplied in `docs/privacy/` and `docs/support/`, served at `https://mkodithuwakku.github.io/CasinoCompass/`, with public GitHub Issues contact. The app's links use that exact case-sensitive base. Publication verification is recorded below.
 
 Current captures: [Edmonton](screenshots/edmonton-compass.png), [details](screenshots/edmonton-details.png), [alternate](screenshots/edmonton-alternate.png), [Century Mile](screenshots/century-mile.png), [demo](screenshots/compass-demo.png), [share sheet](screenshots/share-alternate.png), and [Settings](screenshots/settings.png). The original pre-fix observations below are retained as regression context; current captures show the fixed build.
+
+## Public website deployment verification
+
+On September 30, 2026, implementation commit `83a2fee` was pushed to `main`. GitHub Pages was configured to publish `main:/docs`, with HTTPS enforcement enabled and no custom domain. The [Pages deployment](https://github.com/mkodithuwakku/CasinoCompass/actions/runs/36768573708) and [README freshness workflow](https://github.com/mkodithuwakku/CasinoCompass/actions/runs/36768561651) both completed successfully.
+
+- The [home](https://mkodithuwakku.github.io/CasinoCompass/), [privacy](https://mkodithuwakku.github.io/CasinoCompass/privacy/), [support](https://mkodithuwakku.github.io/CasinoCompass/support/), and shared stylesheet returned HTTP 200 over certificate-verified HTTPS. Published bytes matched the committed local files.
+- Browser navigation rendered the home, privacy, and support pages successfully; the support layout was visually checked at the available narrow viewport.
+- The support button targets the project's GitHub Issues creation page. An unauthenticated request successfully reaches GitHub sign-in; a GitHub account is required. No issue was submitted.
+- The final app's alternate share sheet was rechecked after publication work began: it displays “I am 5.7 km from this selected casino.” and populated system actions. No message was sent.
 
 ## Initial audit: build and calculation checks
 
