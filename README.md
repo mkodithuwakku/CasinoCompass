@@ -1,206 +1,204 @@
 # CasinoCompass
 
-CasinoCompass is a novelty iOS compass app that points adults toward the nearest qualifying casino. It uses live location, device heading, and a curated venue dataset to render a spatial finder-style pointer with distance, venue details, sharing, and directional feedback.
+A native iPhone app that points toward the nearest casino with table games in a bundled Canadian venue dataset. It combines location, device heading, and on-device geometry into a compass with straight-line distance, alternate venues, map handoff, and share cards.
 
-This README is intended to stay continuously updated with the app. When features, build settings, supported platforms, venue data, privacy behavior, or release steps change, update this document in the same change set.
+**Swift 6 · SwiftUI · Core Location · iOS 17+ · No backend or third-party SDKs**
 
-## Current Status
+## Demo
 
-- Platform: native iOS app built with SwiftUI.
-- Minimum deployment target: iOS 17.0.
-- Bundle identifier: `com.casinocompass.app`.
-- Current release version: `1.0` build `1`.
-- Current data source: static in-app Canadian casino dataset.
-- Current dataset coverage: Canadian full-casino/table-game venues reviewed from province/operator lists and casino directories.
-- Location mode: live Core Location when authorized, with a Vancouver demo fallback.
-- Heading mode: live device compass when available, with demo heading fallback.
-- App Store hardening: app icon assets, settings resources, privacy policy draft, and submission notes are included.
+<img src="docs/screenshots/compass-earlier-demo.png" alt="Earlier simulator capture showing the compass pointing toward Parq Vancouver in demo mode" width="300">
 
-## Product Behavior
+*Real simulator capture from an earlier revision. It demonstrates the core workflow but predates the current Settings button and rotating taglines; it is not a current release screenshot.*
 
-The primary experience is a full-screen compass interface:
+Current screenshots still needed in `docs/screenshots/`:
 
-- Requests location while the app is open.
-- Determines the user's current coordinate.
-- Shows a witty header tagline chosen fresh each app launch.
-- Filters the venue dataset to casinos with table games.
-- Sorts venues by distance from the current coordinate.
-- Selects the nearest qualifying venue by default.
-- Calculates bearing from the user to the selected venue.
-- Rotates the pointer relative to device heading.
-- Displays distance and, when enabled, the venue name.
-- Allows cycling to another nearby venue with `New Venue`.
-- Shows an alert when `New Venue` is tapped but no additional qualifying casino exists within 50 km.
-- Marks alternate selections so users can tell when the compass is no longer pointing at the nearest venue.
-- Shows venue details and opens directions in Apple Maps or Google Maps.
-- Generates a share card for the current result.
-- Provides Settings links for privacy, support, and safer-play resources.
+| File to capture | State to show |
+| --- | --- |
+| `compass-demo.png` | Current main screen, Vancouver demo mode, nearest venue and distance visible |
+| `venue-details.png` | The same venue's address, distance, and both map actions |
+| `alternate-venue.png` | After tapping New Venue, with the alternate-selection label visible |
+| `settings.png` | Privacy, support, and safer-play resources |
 
-## Recent Interaction Fixes
+Use demo coordinates for reproducible captures and replace the earlier image above after capturing the current build. The repository includes release preparation documents; it does not establish an App Store launch.
 
-The compass has several user-facing refinements:
+## Overview
 
-- Smooth angle wrapping: crossing `359` degrees to `2` degrees now continues through the nearest visual path instead of spinning backward.
-- Correct-direction feedback: entering the target direction window triggers success haptics and short impact pulses.
-- Correct-path background: the screen fades toward a green path state as the user approaches the correct heading.
-- Fresh location refresh: opening or foregrounding the app requests a fresh GPS fix and rejects stale Core Location results older than 60 seconds.
-- Nearest venue reset: after a meaningful location change, the selected venue resets to the nearest result so the app does not keep pointing at a casino near the previous location.
-- New Venue completion: the control cycles through nearby qualifying venues, labels alternate selections, and explains when there is no other nearby venue.
-- Canada-wide table-game venue expansion: added a broader static list of full casino venues across provinces and territories where table-game casinos are known to operate.
-- Dynamic cheeky taglines: the subtitle under `CasinoCompass` rotates through a curated set of witty lines on app launch.
-- Lightweight Google Maps integration: venue details now offer Apple Maps and Google Maps actions. Google Maps uses a Universal Link, so no Google Maps SDK, API key, or billing setup is required.
-- Release hardening: added app icon assets, release bundle/version settings, privacy/support/safer-play links, a draft privacy policy, and App Store submission notes.
+The product idea is a small, playful location utility for adults and travelers who want to know which direction a nearby casino lies. Instead of browsing a map first, the user sees a pointer and distance, then opens a maps app when they want directions.
 
-## Project Structure
+The implemented workflow is: acknowledge the age gate → allow location access or use the Vancouver demo → follow the compass → inspect the venue, choose an alternative, or share a distance card. The app performs venue matching locally and has no accounts, betting, payments, advertising, or analytics.
 
-```text
-CasinoCompass/
-  CasinoCompassApp.swift          App entry point
-  ContentView.swift               Main app flow, venue selection, background, haptics
-  Models/
-    CasinoData.swift              Static venue dataset and demo coordinate
-    CasinoVenue.swift             Venue model and distance/bearing helpers
-    CompassMath.swift             Bearing, relative angle, and distance formatting
-  Services/
-    LocationService.swift         Core Location, heading, demo motion, refresh handling
-  Views/
-    CompassView.swift             Compass rings, pointer, continuous rotation display
-    ShareCardView.swift           Share image content
-    ShareSheet.swift              UIKit share sheet bridge
-  Assets.xcassets/                App icon and accent color assets
-CasinoCompass.xcodeproj/          Xcode project
-SOFTWARE_REQUIREMENTS.md          Product and engineering requirements
-docs/
-  APP_STORE_SUBMISSION.md         App Store metadata, review notes, and QA checklist
-  PRIVACY_POLICY.md               Privacy policy draft to publish before submission
-tools/
-  generate_app_icons.py           Reproducible app icon generator
+The engineering work in this repository spans native UI, sensor integration, geospatial calculations, selection state, animation, haptics, and UIKit interoperability. The [requirements document](SOFTWARE_REQUIREMENTS.md) contains broader plans; this walkthrough describes the code currently present.
+
+## Key features
+
+- **Location-aware selection:** filters for table-game venues, sorts by distance, and starts with the nearest result.
+- **Live directional UI:** calculates bearing relative to device heading, animates across north without a full reverse spin, and fades the background green as alignment improves.
+- **Directional feedback:** entering an eight-degree alignment window triggers success feedback and a short sequence of impacts.
+- **Nearby alternatives:** cycles through venues within 50 km and explains when the dataset has no additional nearby result.
+- **Demo and permission handling:** includes a fixed Vancouver coordinate and simulated heading for exploring the UI without live sensors.
+- **Native integrations:** opens Apple Maps or Google Maps and renders a 1080 × 1350 share card through the system share sheet.
+
+## Tech stack
+
+| Area | Implementation |
+| --- | --- |
+| UI and language | Swift 6, SwiftUI, SF Symbols |
+| Sensors and geography | Core Location; `CLLocation` distance and custom bearing math |
+| State | `@State`, `@StateObject`, `@Published`, `@MainActor` |
+| Persistence | `@AppStorage` for age acknowledgement and name visibility; venues compiled into the app |
+| Native integration | UIKit haptics and `UIActivityViewController`; SwiftUI `ImageRenderer` |
+| External services | URL handoff to maps, website, support, privacy, and safer-play resources |
+| Build and tooling | Xcode project; Python standard-library icon generator and README check; GitHub Actions |
+| Validation | Simulator build and manual QA; no XCTest or UI-test target yet |
+
+There is no database, server API, package dependency setup, or application hosting configuration.
+
+## How the system works
+
+```mermaid
+flowchart LR
+    Sensors[Core Location callbacks] --> Service[LocationService: main-actor state]
+    Demo[Vancouver demo and heading timer] --> Service
+    Service --> Selection[ContentView: filter and sort venues]
+    Data[Bundled CasinoData] --> Selection
+    Selection --> Math[Distance and relative bearing]
+    Math --> UI[Compass animation, labels and feedback]
+    Selection --> Maps[Maps URL handoff]
+    Math --> Share[ImageRenderer and system share sheet]
 ```
 
-## Core Implementation Notes
+1. `ContentView` persists the age acknowledgement and requests a location refresh after acceptance and on foreground activation.
+2. `LocationService` handles authorization and publishes position and heading. Delegate callbacks move state mutations onto the main actor. Accepted fixes require nonnegative horizontal accuracy and a timestamp within 60 seconds of now.
+3. `ContentView` filters `CasinoData.venues` by `hasTableGames`, sorts by `CLLocation.distance`, and takes candidates within 50 km. If none are within that radius, it retains the nearest qualifying venue.
+4. `CompassMath` calculates the initial great-circle bearing and normalizes `bearing − heading` to `[0, 360)`. Distance is straight-line geographic distance, not route distance.
+5. `CompassView` converts the normalized angle to a continuous display angle for animation. The parent view computes alignment progress and haptic transitions.
+6. Details construct map URLs from the selected venue. Sharing renders a SwiftUI card to an image, with a text fallback if rendering fails.
 
-### Location
+## Architecture and data model
 
-`LocationService` owns Core Location authorization, live updates, heading updates, demo mode, and stale-location handling.
+| File or directory | Responsibility |
+| --- | --- |
+| [`CasinoCompassApp.swift`](CasinoCompass/CasinoCompassApp.swift) | App entry point and root view |
+| [`ContentView.swift`](CasinoCompass/ContentView.swift) | Selection, presentation, age gate, settings, details, map links, and feedback |
+| [`LocationService.swift`](CasinoCompass/Services/LocationService.swift) | Authorization, sensors, freshness filtering, demo timer, and published state |
+| [`CasinoData.swift`](CasinoCompass/Models/CasinoData.swift) | Canadian venue records and Vancouver demo coordinate |
+| [`CasinoVenue.swift`](CasinoCompass/Models/CasinoVenue.swift) | Identifiable venue model, distance, and bearing helpers |
+| [`CompassMath.swift`](CasinoCompass/Models/CompassMath.swift) | Bearing, relative angle, and distance formatting |
+| [`Views/`](CasinoCompass/Views/) | Compass drawing, share-card layout, and UIKit share-sheet bridge |
+| [`CasinoCompass.xcodeproj/`](CasinoCompass.xcodeproj/) | Build settings, signing, deployment target, and generated Info.plist settings |
+| [`docs/`](docs/) | Screenshots, privacy policy draft, and release preparation |
+| [`tools/`](tools/) | Reproducible icon generation and documentation checks |
 
-Important behavior:
+`CasinoVenue` contains a stable string ID, name, city, province, address, latitude/longitude, and `hasTableGames`. The current array contains 73 records. There are no entity relationships or remote CRUD endpoints. Live coordinates and selected venue index remain in memory; only two UI preferences use `@AppStorage`.
 
-- `refreshCurrentLocation()` starts live updates and calls `requestLocation()` for a fresh foreground fix.
-- `didUpdateLocations` only accepts recent, valid coordinates.
-- `locationUpdateID` increments when the accepted location changes meaningfully.
-- `ContentView` observes `locationUpdateID` and resets the venue selection to the nearest casino.
+The age gate is a persisted self-declaration, not identity verification or authentication. Opening maps and sharing are explicit user actions that hand content to another app or service. Venue matching itself makes no backend request and does not persist location history.
 
-### Compass Math
+## Engineering decisions and tradeoffs
 
-`CompassMath` handles:
+These rationales describe benefits of the implemented approaches, rather than claiming an undocumented history of why they were chosen.
 
-- Great-circle bearing from current coordinate to venue coordinate.
-- Relative angle between target bearing and device heading.
-- Distance formatting in meters and kilometers.
+| Decision | Why it fits this implementation | Tradeoff and alternative |
+| --- | --- | --- |
+| Bundled venue array | Offline lookup, no credentials or server operation, location stays on device during matching | Data changes require an app update. A versioned downloadable dataset could separate content updates from releases. |
+| SwiftUI with a main-actor location service | Published sensor state drives declarative views; UI mutations have one isolation boundary | Selection and presentation remain concentrated in `ContentView`. An injected selection model would be easier to test. |
+| Bearing plus straight-line distance | Supports a pointer without a routing service | Cannot account for roads, water, or accessibility. Route distance would require a routing integration. |
+| Separate normalized and display angles | Keeps geometry bounded while making north-crossing animation continuous | Two representations need boundary tests. Direct normalized-angle animation can spin the long way. |
+| Maps via URLs | Uses existing navigation apps without a maps SDK or API key | Handoff behavior belongs to iOS and the destination app. An embedded map would offer more UI control. |
 
-The model-level angle remains normalized to `0...360`; `CompassView` keeps a separate continuous display angle so SwiftUI animation does not take the long route across the `0/360` boundary.
+## Technical challenges
 
-### Venue Selection
+### 1. Combining asynchronous sensors with UI state
 
-`ContentView` computes venues from the current coordinate:
+Core Location provides location, heading, authorization, and errors independently. Delegate methods are `nonisolated` and use `Task { @MainActor in ... }` to update observable state. Heading prefers true north and falls back to magnetic north when true heading is unavailable.
 
-- `sortedVenues`: all table-game venues sorted by distance.
-- `candidateVenues`: nearby venues within 50 km, or the nearest venue if none are nearby.
-- `selectedVenue`: currently selected candidate, defaulting to index `0`.
+The service rejects stale fixes and retains the last known position on some failures. It does not fully separate demo and live callbacks, so actor isolation alone does not solve mode-transition races. **Interview lesson:** safe mutation and correct event ordering are separate concerns.
 
-When the app receives a meaningful fresh location update, `selectedVenueIndex` is reset to `0` so the nearest casino is selected again.
+### 2. Keeping selection meaningful as position changes
 
-When the user taps `New Venue`, `selectedVenueIndex` advances through the candidate list in distance order. If the current dataset has only one nearby candidate, the app keeps the nearest venue selected and shows a dataset-scoped no-other-nearby alert.
+The app resets `selectedVenueIndex` when `locationUpdateID` changes. The service increments that identifier for a first accepted fix or movement of at least 100 m from the immediately previous accepted fix.
 
-### Maps Integration
+This avoids unconditional resets for every small update, but successive smaller movements do not accumulate toward the threshold. Because selection uses an index into a freshly sorted list, the selected identity can also change when ordering changes. **Interview lesson:** stable identity and a well-defined movement anchor matter when collections are recomputed.
 
-`VenueDetailsView` offers two directions actions:
+### 3. Animating across a circular boundary
 
-- Apple Maps opens with `maps.apple.com` using the selected venue coordinate and name.
-- Google Maps opens with a `google.com/maps/dir` Universal Link using the selected venue coordinate and driving mode.
+A transition from 359° to 2° should move forward 3°, not backward 357°. `CompassView.shortestDelta` wraps the difference to the shortest signed turn, then adds it to an unbounded display angle. **Interview lesson:** mathematical state and animation continuity can need different representations.
 
-The Google Maps path is intentionally lightweight. It does not embed Google Maps inside the app, does not use the Google Maps SDK, and does not require a Google Cloud API key. If iOS can route the Universal Link to the Google Maps app, it opens there; otherwise it opens in the browser.
+### 4. Turning noisy direction data into feedback
 
-### Release Hardening
+The background starts responding inside 45° and reaches full alignment at 8°. Haptics trigger on entry into the alignment window instead of every heading callback. There is no separate exit threshold or cooldown, so jitter around 8° can retrigger feedback. **Interview lesson:** threshold transitions often need hysteresis, not just a Boolean state.
 
-The app includes a release-oriented Settings screen with:
+## Deep dive: from a venue to a smooth pointer
 
-- Privacy summary and Privacy Policy link.
-- Support link.
-- Responsible Gambling Council safer-play resource link.
+Consider a selected venue with a bearing of 2° and a phone heading of 3°:
 
-The project includes generated app icon PNGs and a repeatable generator in `tools/generate_app_icons.py`.
+1. `CasinoVenue.bearing(from:)` delegates to `CompassMath.bearing`. It converts coordinates to radians and uses `atan2` to compute the initial great-circle direction.
+2. `relativeAngle(targetBearing:heading:)` normalizes `2 − 3` to 359°. The venue lies one degree left of the phone's heading.
+3. If the next sensor update makes the relative angle 2°, `CompassView` calculates a shortest delta of +3° and updates its display angle from 359° to 362°.
+4. SwiftUI animates this display angle with a spring while geometry remains normalized. `ContentView.directionError` uses `min(angle, 360 − angle)`, so 359° correctly means a one-degree error.
+5. Entering the ≤8° window triggers haptics; the background uses clamped progress between the 45° and 8° thresholds.
 
-Before App Store submission, publish the privacy policy and support pages at the URLs used in the app:
+The nearest-venue search is a filter plus sort, approximately O(n log n). More users do not create server contention because each device performs its own lookup. A much larger dataset would stress repeated distance calculations and sorting in computed view properties; caching on position updates or a spatial index would be the next step.
 
-- `https://casinocompass.app/privacy`
-- `https://casinocompass.app/support`
+## Running the project
 
-See `docs/APP_STORE_SUBMISSION.md` for metadata, review notes, privacy labels, screenshot planning, and the physical-device QA checklist.
-
-## Build And Run
-
-Open the project in Xcode:
+Use macOS and Xcode with Swift 6 and an iOS Simulator runtime. The project was created with Xcode 26.3; the documented simulator build was verified with Xcode 26.3. Deployment targets iPhone on iOS 17.0 or newer.
 
 ```sh
+git clone https://github.com/mkodithuwakku/CasinoCompass.git
+cd CasinoCompass
 open CasinoCompass.xcodeproj
 ```
 
-Build from the command line:
+Select the `CasinoCompass` scheme and an iPhone simulator, then Run. Accept the age gate and deny location permission to explore Vancouver demo mode. The header control switches between live and demo location; foreground activation attempts a live refresh again.
+
+No environment variables, API keys, database setup, or package installation are needed. For a physical iPhone, select your own signing team in Xcode and use an available bundle identifier if required; the project currently contains the author's team configuration.
 
 ```sh
-xcodebuild -project CasinoCompass.xcodeproj -scheme CasinoCompass -configuration Debug -sdk iphonesimulator -derivedDataPath DerivedData build
+xcodebuild -project CasinoCompass.xcodeproj \
+  -scheme CasinoCompass -configuration Debug \
+  -sdk iphonesimulator -derivedDataPath DerivedData build
 ```
 
-Run on a simulator or a physical iPhone from Xcode. Live heading behavior is best validated on a physical device because Simulator heading support is limited.
+Optional tooling requires Python 3.9+ and uses only its standard library:
 
-## Validation Checklist
-
-Before pushing user-facing changes:
-
-1. Build the app with `xcodebuild`.
-2. Launch the app in demo mode and confirm the compass renders.
-3. Toggle live/demo location.
-4. Confirm venue details open.
-5. Confirm Apple Maps and Google Maps actions open directions for the selected venue.
-6. Confirm Settings opens and privacy, support, and safer-play links work.
-7. Confirm `New Venue` cycles through multiple nearby candidates in distance order.
-8. Confirm `New Venue` shows a no-other-nearby alert when only one qualifying casino is available within 50 km.
-9. On a physical device, confirm heading rotation is smooth across `0/360`.
-10. On a physical device, confirm correct-direction haptics fire once when entering the target window.
-11. Move a meaningful distance or simulate a location change and confirm the nearest venue updates.
-12. Archive a Release build before App Store submission.
-
-## Privacy
-
-CasinoCompass uses location while the app is open to point toward the nearest qualifying casino. The current implementation does not include accounts, betting, server sync, analytics, advertising, or persistent location history.
-
-The app falls back to a static demo coordinate when live location is unavailable or denied.
-
-## Dataset Maintenance
-
-The current dataset is static and should be reviewed before release. It intentionally targets full casinos with table games, not every slots-only gaming centre, bingo hall, VLT venue, or online casino.
-
-When adding or editing venues:
-
-- Keep coordinates precise enough for distance and bearing calculations.
-- Confirm `hasTableGames` reflects the app's qualifying venue rule.
-- Keep `id` values stable because they identify venues in code.
-- Treat "no other nearby venue" as a statement about the current dataset, not an authoritative real-world casino directory.
-- Prefer provincial regulator, lottery corporation, or operator pages when confirming venues; use general directories only as a cross-check.
-- Update this README if the source, scope, or qualification rules change.
-
-## Release Notes Template
-
-Use this section as the running changelog format for future updates:
-
-```text
-Version:
-Date:
-Changes:
-- 
-Validation:
-- 
-Known Issues:
-- 
+```sh
+python3 tools/generate_app_icons.py
+python3 tools/check_readme_update.py <base-commit> HEAD
 ```
+
+### Validation
+
+The Debug simulator build passes. There is no automated application test target; the build check does not validate sensor behavior or interactions.
+
+Before shipping changes, manually exercise the age gate and denied permission, nearest and alternate venues, the single-candidate alert, details, both maps actions, share rendering, and Settings links. Use a physical iPhone to check heading across north, alignment haptics, live/demo transitions, and movement-based selection changes. Test foreground refresh after backgrounding. See the [release checklist](docs/APP_STORE_SUBMISSION.md) for archive and device QA.
+
+## Current limitations and next improvements
+
+1. **Tests and testability:** add unit tests for bearing, circular-angle boundaries, distance formatting, selection, and freshness; introduce injectable location events and selection logic before UI tests.
+2. **Location lifecycle:** switching to demo does not stop live updates or reject subsequent live callbacks. The demo timer also has no explicit shutdown. Separate mode from sensor availability, stop unused updates, and test foreground/background transitions.
+3. **Selection correctness:** accumulate movement from a reset anchor and preserve an explicitly selected venue by ID. The empty-array fallback indexes the first dataset entry and assumes the bundle is nonempty.
+4. **Share-card accuracy:** the card always says “closest casino,” even after choosing an alternate; it also omits the demo-mode distinction. Make the text reflect the selected result and location mode.
+5. **Data quality:** bundled records have no per-venue source or last-verified date. Audit coordinates and table-game eligibility, preserve stable IDs, and describe missing nearby results as dataset limitations.
+6. **Presentation and release readiness:** capture current screenshots, verify compact-screen and larger-text layouts, and finish publishing the configured privacy/support pages. Their availability is not established by the repository. Some taglines imply favorable odds and should be reviewed against the project's own responsible-use positioning.
+
+The [privacy policy](docs/PRIVACY_POLICY.md) and [App Store submission notes](docs/APP_STORE_SUBMISSION.md) are preparation materials. The requirements include future backend and monetization ideas that are not implemented.
+
+## What this project demonstrates
+
+- Native iOS development with declarative UI and UIKit bridges.
+- Integration of asynchronous sensors with main-actor observable state.
+- Geospatial math and circular-angle animation.
+- Local data modeling, permission handling, and explicit external-app handoff.
+- Analysis of real edge cases in selection, sensor lifecycles, and feedback.
+
+## Keeping this README current
+
+Update this walkthrough in the same change set whenever application code, data, assets, configuration, or tooling changes. Revise the affected behavior, architecture, setup, tradeoffs, limitations, and screenshots; for internal changes, record a concise explanation and validation in the maintenance note below.
+
+[`AGENTS.md`](AGENTS.md) makes this part of the coding workflow, and the [pull request template](.github/pull_request_template.md) prompts review. The [README freshness workflow](.github/workflows/readme-freshness.yml) runs on pushes and pull requests and fails when implementation files change without a README edit. It checks the pushed range or PR diff; a newly created ref is compared with an empty tree. Markdown and files under `docs/` are treated as documentation-only changes.
+
+The check detects missing updates, not factual accuracy, and does not write prose automatically. A failed push check reports a problem after the push; blocking merges requires making **Require README update** a required status check in GitHub branch protection. That repository setting is separate from these files.
+
+### Maintenance notes
+
+- Reworked this walkthrough against the current Swift sources and build configuration; documented known edge cases and the earlier screenshot's scope. Added repository instructions, a PR checklist, and a GitHub documentation check. Verified the Debug simulator build and exercised the documentation check with passing and failing Git fixtures. No application behavior changed.
