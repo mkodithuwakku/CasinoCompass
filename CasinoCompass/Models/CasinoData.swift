@@ -237,7 +237,9 @@ enum CasinoData {
             province: "AB",
             address: "4711 Airport Perimeter Road",
             coordinate: CLLocationCoordinate2D(latitude: 53.3097, longitude: -113.5847),
-            hasTableGames: true
+            // Operator: https://www.cnty.com/centurymile/casino/ (checked 2026-09-30).
+            hasTableGames: false,
+            hasElectronicTableGames: true
         ),
         CasinoVenue(
             id: "camrose-resort-casino",

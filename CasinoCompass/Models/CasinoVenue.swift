@@ -8,7 +8,20 @@ struct CasinoVenue: Identifiable, Hashable {
     let province: String
     let address: String
     let coordinate: CLLocationCoordinate2D
+    /// Live, dealer-operated table games. Electronic-only venues are false.
     let hasTableGames: Bool
+    var hasElectronicTableGames: Bool = false
+
+    var tableGamesDescription: String {
+        if hasTableGames { return "Live table games listed • confirm availability with venue" }
+        return hasElectronicTableGames
+            ? "No live table games • electronic table games only"
+            : "No live table games listed"
+    }
+
+    var tableGamesNotice: String? {
+        hasTableGames ? nil : tableGamesDescription
+    }
 
     var displayLocation: String {
         "\(city), \(province)"

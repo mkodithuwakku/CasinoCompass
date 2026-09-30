@@ -17,6 +17,7 @@
 		0A0000010000000000000008 /* ShareCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A0000010000000000000018 /* ShareCardView.swift */; };
 		0A0000010000000000000009 /* ShareSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A0000010000000000000019 /* ShareSheet.swift */; };
 		0A000001000000000000000A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0A000001000000000000001A /* Assets.xcassets */; };
+		0A000001000000000000000B /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 0A000001000000000000001B /* PrivacyInfo.xcprivacy */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -31,6 +32,7 @@
 		0A0000010000000000000018 /* ShareCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareCardView.swift; sourceTree = "<group>"; };
 		0A0000010000000000000019 /* ShareSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareSheet.swift; sourceTree = "<group>"; };
 		0A000001000000000000001A /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		0A000001000000000000001B /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -61,6 +63,7 @@
 				0A0000010000000000000024 /* Services */,
 				0A0000010000000000000025 /* Views */,
 				0A000001000000000000001A /* Assets.xcassets */,
+				0A000001000000000000001B /* PrivacyInfo.xcprivacy */,
 			);
 			path = CasinoCompass;
 			sourceTree = "<group>";
@@ -161,6 +164,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				0A000001000000000000000A /* Assets.xcassets in Resources */,
+				0A000001000000000000000B /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -5,6 +5,8 @@ struct CompassView: View {
     let distance: String
     let venueName: String?
     let venueNote: String?
+    let tableGamesNotice: String?
+    let canPoint: Bool
     let status: String
     let isUsingDemo: Bool
 
@@ -37,7 +39,7 @@ struct CompassView: View {
                         .frame(width: 92, height: 210)
                         .offset(y: -46)
 
-                    Image(systemName: "location.north.fill")
+                    Image(systemName: canPoint ? "location.north.fill" : "location.slash")
                         .font(.system(size: 108, weight: .black))
                         .foregroundStyle(
                             LinearGradient(
@@ -49,10 +51,10 @@ struct CompassView: View {
                         .shadow(color: .mint.opacity(0.65), radius: 24, x: 0, y: 0)
                         .offset(y: -52)
                 }
-                .rotationEffect(.degrees(displayedAngle ?? relativeAngle))
+                .rotationEffect(.degrees(canPoint ? (displayedAngle ?? relativeAngle) : 0))
                 .animation(.spring(response: 0.55, dampingFraction: 0.78), value: displayedAngle)
                 .frame(width: 260, height: 260)
-                .accessibilityLabel("Direction pointer")
+                .accessibilityLabel(canPoint ? "Direction pointer" : "Compass heading unavailable")
 
                 VStack(spacing: 8) {
                     Text(distance)
@@ -77,9 +79,18 @@ struct CompassView: View {
                             .multilineTextAlignment(.center)
                     }
 
-                    Text(isUsingDemo ? "Demo location active" : status)
+                    if let tableGamesNotice {
+                        Label(tableGamesNotice, systemImage: "exclamationmark.triangle.fill")
+                            .font(.footnote.weight(.semibold))
+                            .foregroundStyle(.yellow)
+                            .multilineTextAlignment(.center)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+
+                    Text(isUsingDemo ? "Demo location • Vancouver • simulated heading" : status)
                         .font(.footnote.weight(.medium))
-                        .foregroundStyle(.white.opacity(0.62))
+                        .foregroundStyle(.white.opacity(0.8))
+                        .multilineTextAlignment(.center)
                 }
                 .padding(.horizontal, 22)
             }

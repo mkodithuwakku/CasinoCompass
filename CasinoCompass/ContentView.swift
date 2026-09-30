@@ -3,9 +3,9 @@ import SwiftUI
 import UIKit
 
 private enum AppLinks {
-    static let website = URL(string: "https://casinocompass.app")!
-    static let privacyPolicy = URL(string: "https://casinocompass.app/privacy")!
-    static let support = URL(string: "https://casinocompass.app/support")!
+    static let website = URL(string: "https://mkodithuwakku.github.io/CasinoCompass/")!
+    static let privacyPolicy = URL(string: "https://mkodithuwakku.github.io/CasinoCompass/privacy/")!
+    static let support = URL(string: "https://mkodithuwakku.github.io/CasinoCompass/support/")!
     static let responsibleGamblingCouncil = URL(string: "https://responsiblegambling.org/for-the-public/help-for-problem-gambling/help-for-canadians/")!
 }
 
@@ -17,8 +17,7 @@ struct ContentView: View {
 
     @StateObject private var locationService = LocationService()
     @State private var selectedVenueIndex = 0
-    @State private var shareItems: [Any] = []
-    @State private var isShowingShareSheet = false
+    @State private var sharePayload: SharePayload?
     @State private var isShowingDetails = false
     @State private var isShowingSettings = false
     @State private var isShowingNoOtherVenueAlert = false
@@ -35,7 +34,6 @@ struct ContentView: View {
         defaultHeaderTagline,
         "Get to where you NEED to go.",
         "You miss 100% of the shots you don't take.",
-        "The odds are in favour.",
         "Follow your heart. And the blinking arrow.",
         "A little luck. A lot of questionable navigation.",
         "Responsible choices. Irresponsibly stylish compass.",
@@ -55,18 +53,19 @@ struct ContentView: View {
             if hasAcceptedAgeGate {
                 mainExperience
                     .task {
-                        locationService.refreshCurrentLocation()
+                        locationService.startIfNeeded()
                     }
             } else {
                 AgeGateView {
                     hasAcceptedAgeGate = true
-                    locationService.refreshCurrentLocation()
+                    locationService.startIfNeeded()
                 }
             }
         }
         .onChange(of: scenePhase) { _, scenePhase in
-            guard scenePhase == .active, hasAcceptedAgeGate else { return }
-            locationService.refreshCurrentLocation()
+            guard hasAcceptedAgeGate else { return }
+            if scenePhase == .active { locationService.resume() }
+            if scenePhase == .background { locationService.suspend() }
         }
         .onChange(of: locationService.locationUpdateID) { _, _ in
             selectedVenueIndex = 0
@@ -79,9 +78,8 @@ struct ContentView: View {
             }
             wasFacingCorrectDirection = isFacingCorrectDirection
         }
-        .sheet(isPresented: $isShowingShareSheet) {
-            ShareSheet(items: shareItems)
-                .presentationDetents([.medium, .large])
+        .sheet(item: $sharePayload) { payload in
+            ShareSheet(items: payload.items)
         }
         .sheet(isPresented: $isShowingDetails) {
             VenueDetailsView(
@@ -89,7 +87,7 @@ struct ContentView: View {
                 distance: formattedDistance,
                 isUsingDemo: locationService.isUsingDemoLocation
             )
-            .presentationDetents([.medium])
+            .presentationDetents([.large])
         }
         .sheet(isPresented: $isShowingSettings) {
             SettingsView()
@@ -98,7 +96,7 @@ struct ContentView: View {
         .alert("No Other Venue In Dataset", isPresented: $isShowingNoOtherVenueAlert) {
             Button("OK", role: .cancel) {}
         } message: {
-            Text("CasinoCompass does not have another qualifying casino within \(CompassMath.formattedDistance(newVenueRadiusMeters)) in its current venue dataset.")
+            Text("CasinoCompass does not have another listed casino within \(CompassMath.formattedDistance(newVenueRadiusMeters)) in its current venue dataset.")
         }
     }
 
@@ -106,20 +104,40 @@ struct ContentView: View {
         VStack(spacing: 0) {
             header
 
-            Spacer(minLength: 4)
-
-            CompassView(
-                relativeAngle: relativeAngle,
-                distance: formattedDistance,
-                venueName: showVenueName ? selectedVenue.name : nil,
-                venueNote: venueNote,
-                status: locationService.statusMessage,
-                isUsingDemo: locationService.isUsingDemoLocation
-            )
-
-            controls
-                .padding(.horizontal, 20)
-                .padding(.bottom, 18)
+            ScrollView {
+                VStack(spacing: 20) {
+                    if locationService.location != nil {
+                        CompassView(
+                            relativeAngle: relativeAngle,
+                            distance: formattedDistance,
+                            venueName: showVenueName ? selectedVenue.name : nil,
+                            venueNote: venueNote,
+                            tableGamesNotice: selectedVenue.tableGamesNotice,
+                            canPoint: locationService.canPoint,
+                            status: locationService.statusMessage,
+                            isUsingDemo: locationService.isUsingDemoLocation
+                        )
+                    } else {
+                        VStack(spacing: 20) {
+                            Image(systemName: "location.magnifyingglass")
+                                .font(.system(size: 64))
+                            Text(locationService.statusMessage)
+                                .multilineTextAlignment(.center)
+                            Button("Try Live Location Again") { locationService.refreshCurrentLocation() }
+                            Button("Use Vancouver Demo") { locationService.useDemoLocation() }
+                        }
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity, minHeight: 360)
+                        .padding(24)
+                    }
+                    controls
+                        .disabled(locationService.location == nil)
+                        .padding(.horizontal, 20)
+                        .padding(.bottom, 18)
+                }
+                .padding(.top, 24)
+            }
+            .scrollBounceBehavior(.basedOnSize)
         }
     }
 
@@ -201,7 +219,6 @@ struct ContentView: View {
 
     private var sortedVenues: [CasinoVenue] {
         CasinoData.venues
-            .filter(\.hasTableGames)
             .sorted { $0.distance(from: currentCoordinate) < $1.distance(from: currentCoordinate) }
     }
 
@@ -240,10 +257,11 @@ struct ContentView: View {
     }
 
     private var isFacingCorrectDirection: Bool {
-        directionError <= correctDirectionThreshold
+        locationService.location != nil && locationService.canPoint && directionError <= correctDirectionThreshold
     }
 
     private var correctPathProgress: Double {
+        guard locationService.location != nil, locationService.canPoint else { return 0 }
         let progress = (correctPathFadeStart - directionError) / (correctPathFadeStart - correctDirectionThreshold)
         return min(max(progress, 0), 1)
     }
@@ -265,23 +283,24 @@ struct ContentView: View {
         wasFacingCorrectDirection = false
     }
 
+    @MainActor
     private func createShareCard() {
-        let card = ShareCardView(distance: formattedDistance, appLink: appLink)
-        let renderer = ImageRenderer(content: card)
+        guard locationService.location != nil else { return }
+        // Snapshot all fields before presentation, so sensor updates cannot change this share.
+        let summary = ShareSummary(
+            distance: formattedDistance,
+            venueName: showVenueName ? selectedVenue.name : nil,
+            isNearest: selectedVenuePosition == 1,
+            isDemo: locationService.isUsingDemoLocation,
+            tableGamesNotice: selectedVenue.tableGamesNotice,
+            appLink: appLink
+        )
+        let renderer = ImageRenderer(content: ShareCardView(summary: summary))
         renderer.proposedSize = ProposedViewSize(width: 1080, height: 1350)
         renderer.scale = 1
-
-        guard let image = renderer.uiImage else {
-            shareItems = ["Download CasinoCompass to find the closest casino to you. \(appLink)"]
-            isShowingShareSheet = true
-            return
-        }
-
-        shareItems = [
-            image,
-            "Download CasinoCompass to find the closest casino to you. \(appLink)"
-        ]
-        isShowingShareSheet = true
+        var items: [Any] = [summary.text]
+        if let image = renderer.uiImage { items.insert(image, at: 0) }
+        sharePayload = SharePayload(items: items)
     }
 
     private func playCorrectDirectionFeedback() {
@@ -312,7 +331,7 @@ private struct AgeGateView: View {
                     .font(.system(size: 44, weight: .black, design: .rounded))
                     .foregroundStyle(.white)
 
-                Text("A novelty compass for adults who want to know where the nearest full casino is. For science, satire, and maybe a deeply unnecessary walk.")
+                Text("A novelty compass for adults who want to know where the nearest listed casino is. For science, satire, and maybe a deeply unnecessary walk.")
                     .font(.title3.weight(.medium))
                     .foregroundStyle(.white.opacity(0.72))
                     .lineSpacing(3)
@@ -536,7 +555,7 @@ private struct VenueDetailsView: View {
 
             DetailRow(icon: "point.topleft.down.curvedto.point.bottomright.up", title: "Distance", value: distance)
             DetailRow(icon: "mappin.and.ellipse", title: "Address", value: venue.address)
-            DetailRow(icon: "tablecells.fill", title: "Venue rule", value: "Full casino with table games")
+            DetailRow(icon: "tablecells.fill", title: "Table games", value: venue.tableGamesDescription)
             DetailRow(icon: isUsingDemo ? "sparkles" : "location.fill", title: "Location mode", value: isUsingDemo ? "Demo location" : "Live location")
 
             VStack(spacing: 10) {

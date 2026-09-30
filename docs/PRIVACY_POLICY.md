@@ -1,43 +1,37 @@
 # CasinoCompass Privacy Policy
 
-Effective date: June 21, 2026
+Effective September 30, 2026. Public version: https://mkodithuwakku.github.io/CasinoCompass/privacy/
 
-CasinoCompass is a novelty location utility that points adults toward nearby qualifying casino venues. It does not provide betting, gambling transactions, accounts, deposits, casino promotions, analytics, advertising, or server sync.
+CasinoCompass calculates casino distances and directions on your device. The app has no developer-operated backend, accounts, analytics SDKs, advertising, or tracking.
 
-## Information We Use
+## Location and heading
 
-CasinoCompass uses your device location while the app is open to calculate:
+When you choose live mode and grant permission, the app uses your device location and compass heading to calculate straight-line distances and direction to venues in a bundled dataset. The app does not send these sensor readings to the developer or save location history.
 
-- The nearest qualifying casino in the in-app venue dataset.
-- The approximate distance to that venue.
-- The direction from your current position to that venue.
+Demo uses a fixed Vancouver coordinate and simulated heading. Choosing demo stops live location and heading updates. The app also stops its updates when it enters the background.
 
-CasinoCompass also uses your device heading to rotate the compass pointer.
+## Local preferences
 
-## Information We Do Not Collect
+The app saves age-notice acknowledgement and whether venue names should be displayed in Apple's UserDefaults storage. These preferences are not sent to the developer. Deleting the app removes its local app data; device backup and restore are managed by Apple and your device settings.
 
-The current app does not collect, store, sell, rent, transmit, or share:
+## Maps, links, and sharing
 
-- Precise location history.
-- Names, email addresses, phone numbers, or account identifiers.
-- Contacts, photos, health data, payment data, or browsing history.
-- Advertising identifiers or analytics events.
+Opening Apple Maps or Google Maps passes the selected venue's coordinates (and its name for Apple Maps) to that service. Maps may obtain your own location separately under its permissions and privacy policy.
 
-All venue matching is performed on device against the bundled venue dataset.
+Share prepares an image and text containing the displayed distance, venue name if visible, demo status when applicable, venue notices, and the website link. Content is sent to another app or recipient only when you choose a sharing action. Distances and venue choices can reveal information about your whereabouts; review the card before sending it.
 
-## Third-Party Links
+External sites, map apps, and sharing destinations have their own privacy practices. CasinoCompass does not control those services.
 
-CasinoCompass can open Apple Maps, Google Maps, the CasinoCompass website, support pages, privacy pages, and responsible-gambling resources. Those services are operated by third parties or public websites and are governed by their own privacy policies.
+## Website and support
 
-## Children
+The public pages are hosted on GitHub Pages. This website adds no analytics scripts, advertising, forms, or browser storage. GitHub may process technical information such as IP addresses to operate and secure hosting. See the [GitHub Privacy Statement](https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement).
 
-CasinoCompass is intended for adults only and is not designed for children.
+Support uses [GitHub Issues](https://github.com/mkodithuwakku/CasinoCompass/issues/new). Reports and GitHub profiles are public. Do not include precise personal locations, private documents, credentials, or other sensitive information. Information you choose to provide is used to respond and improve the app.
 
-## Contact
+## Adults only
 
-For privacy or support questions, use:
+The app is intended for adults who meet the legal age in their location. The acknowledgement is a self-declaration; no birth date or identity document is collected.
 
-- Support: https://casinocompass.app/support
-- Privacy policy: https://casinocompass.app/privacy
+## Contact and changes
 
-Before App Store submission, publish this policy at the Privacy Policy URL used in App Store Connect.
+For privacy questions, use the public issue form without sensitive details, or visit [Support](https://mkodithuwakku.github.io/CasinoCompass/support/). This policy and its effective date will be updated when privacy practices change.

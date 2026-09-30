@@ -12,7 +12,7 @@ The core experience is simple: open the app, grant location permission, and see 
 - Initial launch market: all of Canada by public release.
 - Initial platform and stack: iOS first using native Swift/SwiftUI. Android is deferred.
 - Age gate: 18+ for MVP, with dynamic region-based age handling deferred.
-- Venue scope: full casinos with table games only.
+- Venue scope (updated September 30, 2026): retain bundled casinos, including venues without live table games; explicitly disclose no-live-table/electronic-only status.
 - Distance model: straight-line distance, not driving distance.
 - Account model: no accounts for MVP or near-term releases.
 - Tone: subtle and witty rather than loud or overtly comedic.
@@ -97,9 +97,9 @@ The core experience is simple: open the app, grant location permission, and see 
 ### 7.4 Nearest Casino Detection
 
 - The app must query a casino venue dataset using the user's current coordinate.
-- The app must return the nearest open/known full casino with table games by geodesic straight-line distance.
+- The app must return the nearest known listed casino by geodesic straight-line distance; live opening hours are not available.
 - The app must support regional data updates without requiring an app release.
-- The app must exclude non-casino venues, slots-only venues, card rooms without a full casino offering, electronic-gaming-only venues, and other gambling-adjacent venues that do not meet the full-casino-with-table-games rule.
+- The app must explicitly label listed casinos without live table games, including electronic-table-only casinos. Century Mile remains included. This does not authorize adding unrelated gambling-adjacent venues.
 - The app should support configurable inclusion rules for tribal/First Nations casinos, racinos with full table games, and casino hotels.
 - The app must maintain a ranked list of nearby qualifying casinos so the user can skip the current venue and point to the next closest venue.
 - By default, "New Venue" should cycle through qualifying casinos within 50 km of the user's current location.
@@ -636,7 +636,7 @@ Answered decisions:
 - Use CasinoCompass as the working name until a final name is selected.
 - Cover all of Canada by public release.
 - Use 18+ age confirmation for MVP.
-- Include only full casinos with table games.
+- Include listed casinos and explicitly disclose venues without live table games, including electronic-table-only venues.
 - Use straight-line distance.
 - Provide a venue-name display option and a "New Venue" control that points to the next closest qualifying casino within 50 km.
 - Use subtle, witty satire.

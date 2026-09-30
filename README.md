@@ -1,25 +1,18 @@
 # CasinoCompass
 
-A native iPhone app that points toward the nearest casino with table games in a bundled Canadian venue dataset. It combines location, device heading, and on-device geometry into a compass with straight-line distance, alternate venues, map handoff, and share cards.
+A native iPhone app that points toward the nearest listed casino in a bundled Canadian venue dataset, with explicit notices for venues without live table games. It combines location, device heading, and on-device geometry into a compass with straight-line distance, alternate venues, map handoff, and share cards.
 
 **Swift 6 · SwiftUI · Core Location · iOS 17+ · No backend or third-party SDKs**
 
 ## Demo
 
-<img src="docs/screenshots/compass-earlier-demo.png" alt="Earlier simulator capture showing the compass pointing toward Parq Vancouver in demo mode" width="300">
+<img src="docs/screenshots/edmonton-compass.png" alt="Current simulator build selecting Grand Villa Casino Edmonton from an injected downtown Edmonton location" width="300">
 
-*Real simulator capture from an earlier revision. It demonstrates the core workflow but predates the current Settings button and rotating taglines; it is not a current release screenshot.*
+*Real iPhone 17 Pro Max simulator capture, September 30, 2026. Location is simulated; live heading is explicitly unavailable because the simulator has no compass sensor. This is QA evidence, not physical-device navigation validation.*
 
-Current screenshots still needed in `docs/screenshots/`:
+Current captures: [Edmonton details](docs/screenshots/edmonton-details.png), [alternate venue](docs/screenshots/edmonton-alternate.png), [Vancouver demo](docs/screenshots/compass-demo.png), [Century Mile notice](docs/screenshots/century-mile.png), [share sheet](docs/screenshots/share-alternate.png), and [Settings](docs/screenshots/settings.png). Raw PNG captures contain alpha and need opaque export or JPEG recapture before App Store upload.
 
-| File to capture | State to show |
-| --- | --- |
-| `compass-demo.png` | Current main screen, Vancouver demo mode, nearest venue and distance visible |
-| `venue-details.png` | The same venue's address, distance, and both map actions |
-| `alternate-venue.png` | After tapping New Venue, with the alternate-selection label visible |
-| `settings.png` | Privacy, support, and safer-play resources |
-
-Use demo coordinates for reproducible captures and replace the earlier image above after capturing the current build. The repository includes release preparation documents; it does not establish an App Store launch.
+The [Edmonton verification report](docs/EDMONTON_QA.md) records passing builds and lookup checks and the completed release fixes. The [step-by-step App Store guide](docs/APP_STORE_SUBMISSION.md) covers enrollment through release. No App Store submission or launch is established.
 
 ## Overview
 
@@ -31,12 +24,12 @@ The engineering work in this repository spans native UI, sensor integration, geo
 
 ## Key features
 
-- **Location-aware selection:** filters for table-game venues, sorts by distance, and starts with the nearest result.
+- **Location-aware selection:** sorts all bundled casinos by distance and starts with the nearest result. Venues without listed live table games remain selectable with explicit notices; Century Mile is labelled electronic-only.
 - **Live directional UI:** calculates bearing relative to device heading, animates across north without a full reverse spin, and fades the background green as alignment improves.
 - **Directional feedback:** entering an eight-degree alignment window triggers success feedback and a short sequence of impacts.
 - **Nearby alternatives:** cycles through venues within 50 km and explains when the dataset has no additional nearby result.
-- **Demo and permission handling:** includes a fixed Vancouver coordinate and simulated heading for exploring the UI without live sensors.
-- **Native integrations:** opens Apple Maps or Google Maps and renders a 1080 × 1350 share card through the system share sheet.
+- **Demo and permission handling:** includes a fixed Vancouver coordinate and simulated heading. Demo stops sensors and ignores live callbacks; backgrounding pauses updates and foregrounding resumes the chosen mode. Live mode waits for a fresh fix and shows unavailable heading rather than animating a fake live direction.
+- **Native integrations:** opens Apple Maps or Google Maps and renders a 1080 × 1350 share card. The share payload snapshots nearest/alternate selection, demo mode, name visibility, and table-game notices before the system sheet opens; text remains available if rendering fails.
 
 ## Tech stack
 
@@ -49,7 +42,7 @@ The engineering work in this repository spans native UI, sensor integration, geo
 | Native integration | UIKit haptics and `UIActivityViewController`; SwiftUI `ImageRenderer` |
 | External services | URL handoff to maps, website, support, privacy, and safer-play resources |
 | Build and tooling | Xcode project; Python standard-library icon generator and README check; GitHub Actions |
-| Validation | Simulator build and manual QA; no XCTest or UI-test target yet |
+| Validation | Simulator and unsigned device builds, standalone Swift regression executable, and manual simulator QA; no XCTest/UI-test target or physical-device validation |
 
 There is no database, server API, package dependency setup, or application hosting configuration.
 
@@ -59,7 +52,7 @@ There is no database, server API, package dependency setup, or application hosti
 flowchart LR
     Sensors[Core Location callbacks] --> Service[LocationService: main-actor state]
     Demo[Vancouver demo and heading timer] --> Service
-    Service --> Selection[ContentView: filter and sort venues]
+    Service --> Selection[ContentView: sort and select venues]
     Data[Bundled CasinoData] --> Selection
     Selection --> Math[Distance and relative bearing]
     Math --> UI[Compass animation, labels and feedback]
@@ -67,9 +60,9 @@ flowchart LR
     Math --> Share[ImageRenderer and system share sheet]
 ```
 
-1. `ContentView` persists the age acknowledgement and requests a location refresh after acceptance and on foreground activation.
-2. `LocationService` handles authorization and publishes position and heading. Delegate callbacks move state mutations onto the main actor. Accepted fixes require nonnegative horizontal accuracy and a timestamp within 60 seconds of now.
-3. `ContentView` filters `CasinoData.venues` by `hasTableGames`, sorts by `CLLocation.distance`, and takes candidates within 50 km. If none are within that radius, it retains the nearest qualifying venue.
+1. `ContentView` persists the age acknowledgement and starts live mode once after acceptance. Foreground activation resumes the current mode; a cold launch defaults to live mode, with demo fallback when permission is denied.
+2. `LocationService` handles authorization and publishes position and heading. Delegate callbacks move state mutations onto the main actor. Accepted fixes require nonnegative horizontal accuracy, a timestamp within 60 seconds, and a timestamp at or after the current live session started. Demo and suspended states reject callbacks.
+3. `ContentView` sorts all `CasinoData.venues` by `CLLocation.distance` and takes candidates within 50 km. If none are within that radius, it retains the nearest listed venue. `hasTableGames` now describes live tables rather than controlling eligibility; `hasElectronicTableGames` distinguishes the Century Mile notice.
 4. `CompassMath` calculates the initial great-circle bearing and normalizes `bearing − heading` to `[0, 360)`. Distance is straight-line geographic distance, not route distance.
 5. `CompassView` converts the normalized angle to a continuous display angle for animation. The parent view computes alignment progress and haptic transitions.
 6. Details construct map URLs from the selected venue. Sharing renders a SwiftUI card to an image, with a text fallback if rendering fails.
@@ -89,7 +82,7 @@ flowchart LR
 | [`docs/`](docs/) | Screenshots, privacy policy draft, and release preparation |
 | [`tools/`](tools/) | Reproducible icon generation and documentation checks |
 
-`CasinoVenue` contains a stable string ID, name, city, province, address, latitude/longitude, and `hasTableGames`. The current array contains 73 records. There are no entity relationships or remote CRUD endpoints. Live coordinates and selected venue index remain in memory; only two UI preferences use `@AppStorage`.
+`CasinoVenue` contains a stable string ID, name, city, province, address, latitude/longitude, and `hasTableGames` (live tables), and `hasElectronicTableGames`. The current array contains 73 records. There are no entity relationships or remote CRUD endpoints. Live coordinates and selected venue index remain in memory; only two UI preferences use `@AppStorage`.
 
 The age gate is a persisted self-declaration, not identity verification or authentication. Opening maps and sharing are explicit user actions that hand content to another app or service. Venue matching itself makes no backend request and does not persist location history.
 
@@ -111,13 +104,13 @@ These rationales describe benefits of the implemented approaches, rather than cl
 
 Core Location provides location, heading, authorization, and errors independently. Delegate methods are `nonisolated` and use `Task { @MainActor in ... }` to update observable state. Heading prefers true north and falls back to magnetic north when true heading is unavailable.
 
-The service rejects stale fixes and retains the last known position on some failures. It does not fully separate demo and live callbacks, so actor isolation alone does not solve mode-transition races. **Interview lesson:** safe mutation and correct event ordering are separate concerns.
+The service owns an explicit mode, stops sensors in demo/background states, and checks mode, activity, and session timestamps before accepting location/heading callbacks. A heading callback never changes the coordinate mode. Live retries show a locating state instead of relabelling demo coordinates. **Interview lesson:** actor isolation protects mutation; explicit mode and event validity checks protect behavior.
 
 ### 2. Keeping selection meaningful as position changes
 
-The app resets `selectedVenueIndex` when `locationUpdateID` changes. The service increments that identifier for a first accepted fix or movement of at least 100 m from the immediately previous accepted fix.
+The app resets `selectedVenueIndex` when `locationUpdateID` changes. The service increments that identifier for a first accepted fix or movement of at least 100 m from a movement anchor.
 
-This avoids unconditional resets for every small update, but successive smaller movements do not accumulate toward the threshold. Because selection uses an index into a freshly sorted list, the selected identity can also change when ordering changes. **Interview lesson:** stable identity and a well-defined movement anchor matter when collections are recomputed.
+This avoids unconditional resets for every small update; smaller movements accumulate against the anchor until the threshold is reached. Because selection uses an index into a freshly sorted list, the selected identity can also change when ordering changes. **Interview lesson:** stable identity and a well-defined movement anchor matter when collections are recomputed.
 
 ### 3. Animating across a circular boundary
 
@@ -137,7 +130,7 @@ Consider a selected venue with a bearing of 2° and a phone heading of 3°:
 4. SwiftUI animates this display angle with a spring while geometry remains normalized. `ContentView.directionError` uses `min(angle, 360 − angle)`, so 359° correctly means a one-degree error.
 5. Entering the ≤8° window triggers haptics; the background uses clamped progress between the 45° and 8° thresholds.
 
-The nearest-venue search is a filter plus sort, approximately O(n log n). More users do not create server contention because each device performs its own lookup. A much larger dataset would stress repeated distance calculations and sorting in computed view properties; caching on position updates or a spatial index would be the next step.
+The nearest-venue search sorts by distance and filters by radius, approximately O(n log n). More users do not create server contention because each device performs its own lookup. A much larger dataset would stress repeated distance calculations and sorting in computed view properties; caching on position updates or a spatial index would be the next step.
 
 ## Running the project
 
@@ -149,7 +142,7 @@ cd CasinoCompass
 open CasinoCompass.xcodeproj
 ```
 
-Select the `CasinoCompass` scheme and an iPhone simulator, then Run. Accept the age gate and deny location permission to explore Vancouver demo mode. The header control switches between live and demo location; foreground activation attempts a live refresh again.
+Select the `CasinoCompass` scheme and an iPhone simulator, then Run. Accept the age gate and deny location permission to explore Vancouver demo mode. The header control switches between live and demo location; foreground activation preserves the selected mode. Live heading is unavailable in the simulator; demo heading is animated and labelled.
 
 No environment variables, API keys, database setup, or package installation are needed. For a physical iPhone, select your own signing team in Xcode and use an available bundle identifier if required; the project currently contains the author's team configuration.
 
@@ -168,20 +161,30 @@ python3 tools/check_readme_update.py <base-commit> HEAD
 
 ### Validation
 
-The Debug simulator build passes. There is no automated application test target; the build check does not validate sensor behavior or interactions.
+The Debug simulator build and unsigned Release build for generic iOS hardware pass. The privacy manifest is present in both built bundles. `tools/verify_release.sh <booted-simulator-UDID>` compiles the actual app models, location service, and share-card code into a standalone iOS Simulator executable. It checks demo callbacks and resume, stale/background events, permission fallback, eight Edmonton-area selections including Century Mile, share wording/name hiding, and 1080 × 1350 image rendering. This is automated regression coverage, not an XCTest target or physical-device validation.
+
+Manual simulator checks cover nearest/alternate selections, the populated share sheet, demo/live transitions, Century Mile notices, and Settings. Public privacy and support pages are hosted at [GitHub Pages](https://mkodithuwakku.github.io/CasinoCompass/). See [the QA report](docs/EDMONTON_QA.md) for exact evidence and remaining release checks. Signed archive, TestFlight, real GPS/compass/haptics, and App Review remain outstanding.
 
 Before shipping changes, manually exercise the age gate and denied permission, nearest and alternate venues, the single-candidate alert, details, both maps actions, share rendering, and Settings links. Use a physical iPhone to check heading across north, alignment haptics, live/demo transitions, and movement-based selection changes. Test foreground refresh after backgrounding. See the [release checklist](docs/APP_STORE_SUBMISSION.md) for archive and device QA.
 
 ## Current limitations and next improvements
 
-1. **Tests and testability:** add unit tests for bearing, circular-angle boundaries, distance formatting, selection, and freshness; introduce injectable location events and selection logic before UI tests.
-2. **Location lifecycle:** switching to demo does not stop live updates or reject subsequent live callbacks. The demo timer also has no explicit shutdown. Separate mode from sensor availability, stop unused updates, and test foreground/background transitions.
-3. **Selection correctness:** accumulate movement from a reset anchor and preserve an explicitly selected venue by ID. The empty-array fallback indexes the first dataset entry and assumes the bundle is nonempty.
-4. **Share-card accuracy:** the card always says “closest casino,” even after choosing an alternate; it also omits the demo-mode distinction. Make the text reflect the selected result and location mode.
-5. **Data quality:** bundled records have no per-venue source or last-verified date. Audit coordinates and table-game eligibility, preserve stable IDs, and describe missing nearby results as dataset limitations.
-6. **Presentation and release readiness:** capture current screenshots, verify compact-screen and larger-text layouts, and finish publishing the configured privacy/support pages. Their availability is not established by the repository. Some taglines imply favorable odds and should be reviewed against the project's own responsible-use positioning.
+1. **Physical-device validation:** run the signed build on an iPhone and TestFlight, including real heading, GPS accuracy, haptics, map destinations, and receiving a shared image. Standalone regression checks and simulator UI checks do not replace this.
+2. **Selection identity:** selection still uses an index in a freshly sorted list. Small movements can reorder records; preserve an explicitly selected venue by ID in a future change. The bundled-data fallback assumes a nonempty array.
+3. **Data quality:** coverage is static, not exhaustive, and live hours/entrance coordinates are not verified. Century Mile has a dated operator source and explicit electronic-only status; other records retain their existing table-game flags and should be independently audited. A notice reflects the bundled record, not a live venue feed.
+4. **Feedback and accessibility:** alignment haptics have no separate exit threshold/cooldown. The main surface scrolls on compact displays; broader larger-text/VoiceOver validation remains useful.
+5. **Store submission:** the public pages and UserDefaults privacy manifest are implemented; complete account setup, signing, final screenshots, metadata/age/privacy declarations, and TestFlight before App Review. No App Store publication is claimed.
 
-The [privacy policy](docs/PRIVACY_POLICY.md) and [App Store submission notes](docs/APP_STORE_SUBMISSION.md) are preparation materials. The requirements include future backend and monetization ideas that are not implemented.
+## Public support website
+
+The static HTML/CSS pages under `docs/` are served by GitHub Pages from `main` → `/docs`, with `.nojekyll` and no custom domain, scripts, analytics, forms, or client storage. The app links to the case-sensitive project URL:
+
+- [Privacy](https://mkodithuwakku.github.io/CasinoCompass/privacy/)
+- [Support](https://mkodithuwakku.github.io/CasinoCompass/support/)
+
+Support uses the existing public GitHub Issues page. The website warns that issues are public and require a GitHub account. GitHub's hosting may process technical request data under its own privacy policy. No paid hosting or domain is configured.
+
+The [privacy policy](docs/PRIVACY_POLICY.md) mirrors the public policy, and the [App Store submission guide](docs/APP_STORE_SUBMISSION.md) records remaining steps.
 
 ## What this project demonstrates
 
@@ -200,5 +203,7 @@ Update this walkthrough in the same change set whenever application code, data, 
 The check detects missing updates, not factual accuracy, and does not write prose automatically. A failed push check reports a problem after the push; blocking merges requires making **Require README update** a required status check in GitHub branch protection. That repository setting is separate from these files.
 
 ### Maintenance notes
+
+- Fixed explicit location-mode handling and share presentation/copy; added the bundled UserDefaults privacy manifest and public GitHub Pages resources. Retained Century Mile with an electronic-only notice, refreshed captures, and added executable regression checks. Validation and remaining physical-device limits are described above.
 
 - Reworked this walkthrough against the current Swift sources and build configuration; documented known edge cases and the earlier screenshot's scope. Added repository instructions, a PR checklist, and a GitHub documentation check. Verified the Debug simulator build and exercised the documentation check with passing and failing Git fixtures. No application behavior changed.
